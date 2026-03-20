@@ -65,24 +65,28 @@ def generate_password(length: int = 16) -> str:
 # Create user
 # ------------------------------------------------------------------
 def onboard_user(username: str, role: str):
-    """
-    Creates a new Snowflake user with a temporary password.
-    Returns the temporary password or None on failure.
-    """
-    temp_password = generate_password()
+    import secrets
+
+    # ✅ Strong password with special characters
+    temp_password = secrets.token_urlsafe(12) + "@A1"
+
+    print("Generated password:", temp_password)  # debug
 
     conn = get_snowflake_connection()
     cs = conn.cursor()
+
     try:
-        cs.execute(
-            f"""
-            CREATE USER "{username.upper()}"
-            PASSWORD = '{temp_password}'
-            DEFAULT_ROLE = "{role.upper()}"
-            MUST_CHANGE_PASSWORD = TRUE
-            """
-        )
+        query = f'''
+        CREATE USER "{username.upper()}"
+        LOGIN_NAME = "{username.upper()}"
+        PASSWORD = '{temp_password}'
+        DEFAULT_ROLE = "{role.upper()}"
+        MUST_CHANGE_PASSWORD = TRUE
+        '''
+
+        cs.execute(query)
         conn.commit()
+
         return temp_password
 
     except snowflake.connector.errors.ProgrammingError as e:
@@ -92,7 +96,6 @@ def onboard_user(username: str, role: str):
     finally:
         cs.close()
         conn.close()
-
 
 # ------------------------------------------------------------------
 # Reset user password
